@@ -1,0 +1,116 @@
+diff --git a/node_modules/@vueuse/motion/dist/index.esm-bundler.js b/node_modules/@vueuse/motion/dist/index.esm-bundler.js
+index 88bd2be..7f6de1a 100644
+--- a/node_modules/@vueuse/motion/dist/index.esm-bundler.js
++++ b/node_modules/@vueuse/motion/dist/index.esm-bundler.js
+@@ -3,12 +3,12 @@
+   * (c) 2021 
+   * @license MIT
+   */
+-import { ref, computed, watch, nextTick, reactive } from 'vue-demi';
++import { ref, computed, watch, nextTick, reactive, set as __set, del } from 'vue-demi';
+ import { isObject, useEventListener, useIntersectionObserver, noop, isNumber } from '@vueuse/core';
+ import { velocityPerSecond, inertia, animate, cubicBezier, linear, easeIn, easeInOut, easeOut, circIn, circInOut, circOut, backIn, backInOut, backOut, anticipate, bounceIn, bounceInOut, bounceOut } from 'popmotion';
+ 
+ const motionState = {};
+-
++console.log('Hi')
+ var defaultTimestep = 1 / 60 * 1000;
+ var getCurrentTime = typeof performance !== "undefined" ? function () {
+     return performance.now();
+@@ -1005,10 +1005,10 @@ function useMotionTransitions() {
+             const _motionValue = getMotionValue(from);
+             // Set motion properties mapping
+             _motionValue.onChange((v) => {
+-                target[key] = v;
++                __set(target, key, v);
+             });
+             // Set instance motion value
+-            motionValues.value[key] = _motionValue;
++            __set(motionValues.value, key, _motionValue);
+             // Set local motion value
+             motionValue = _motionValue;
+         }
+@@ -1044,6 +1044,7 @@ function useMotionControls(motionProperties, variants = {}, { push, stop } = use
+         return variantsRef.value[variant];
+     };
+     const apply = (variant) => {
++        console.log('apply', variant)
+         // Get variant data from parameter
+         let variantData = isObject(variant) ? variant : getVariantFromKey(variant);
+         // Get transition data
+@@ -1067,7 +1068,10 @@ function useMotionControls(motionProperties, variants = {}, { push, stop } = use
+         // Get variant data from parameter
+         let variantData = isObject(variant) ? variant : getVariantFromKey(variant);
+         // Assign variant data to motion properties
+-        Object.assign(motionProperties, variantData);
++        for (const key in variantData) {
++            console.log('set', key, variantData[key])
++            __set(motionProperties, key, variantData[key]);
++        }
+     };
+     const leave = async (done) => {
+         let leaveVariant;
+@@ -1337,11 +1341,12 @@ function useElementStyle(target) {
+             if (el.style[key] == null || el.style[key] === '')
+                 continue;
+             // Append a defined key to the local StyleProperties state object
+-            state[key] = el.style[key];
++            __set(state, key, el.style[key]);
+         }
+         if (_cache) {
+             // If cache is present, init the target with the current cached value
+-            Object.assign(el.style, _cache);
++            for (const key in _cache)
++                __set(el.style, key, _cache[key]);
+         }
+     });
+     // Sync reactive style to element
+@@ -1385,7 +1390,10 @@ function reactiveTransform(props = {}, enableHardwareAcceleration = true) {
+     // Reactive TransformProperties object
+     const state = reactive({ ...props });
+     // Compute TransformProperties object into a valid CSS transform string
+-    const transform = computed(() => {
++
++    const transform = ref('')
++    
++    watch(state, () => {
+         // Init result
+         let result = '';
+         // Init transformHasZ (used for GPU optimization)
+@@ -1410,8 +1418,8 @@ function reactiveTransform(props = {}, enableHardwareAcceleration = true) {
+             // Trim the last space
+             result = result.trim();
+         }
+-        return result;
+-    });
++        transform.value = result
++    }, {immediate: true, deep: true});
+     return {
+         state,
+         transform,
+@@ -1439,6 +1447,7 @@ function useElementTransform(target) {
+     });
+     // Sync reactive transform to element
+     const stopSyncWatch = watch(transform, (newValue) => {
++        console.log('transform change', newValue)
+         if (!targetRef.value || !targetRef.value.style) {
+             // Add the current value to the cache so it is set on target creation
+             _cache = newValue;
+@@ -1507,7 +1516,8 @@ function useMotionProperties(target) {
+             if (target[key] && target[key] === newVal[key]) {
+                 continue;
+             }
+-            target[key] = newVal[key];
++            console.log('watch', key, newVal[key])
++            __set(target, key, newVal[key]);
+         }
+     }, {
+         immediate: true,
+@@ -1538,6 +1548,7 @@ function useMotionVariants(variants = {}) {
+             return undefined;
+         return variantsRef.value[variant.value];
+     });
++    watch(state, (v)=>console.log(v, +new Date()))
+     return {
+         state,
+         variant,
